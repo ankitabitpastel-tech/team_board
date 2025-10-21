@@ -1,0 +1,39 @@
+# Create .gitignore file
+cat > .gitignore << 'EOF'
+# Django
+*.pyc
+*__pycache__/
+db.sqlite3
+*.log
+
+# Virtual Environment
+myenv/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Static files
+staticfiles/
+media/
+
+# Database (if any local DB files)
+*.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+EOF
