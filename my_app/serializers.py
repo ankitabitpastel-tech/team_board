@@ -1,14 +1,33 @@
 from rest_framework import serializers
 from .models import employees, projects, project_memberships
+from .utils.id_hasher import IDhasher
 
 class employeesserializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+
     class Meta:
         model = employees
         fields = '__all__'
+        # ['id', 'first_name', 'last_name', 'user_name', 'email', ]
+        # exclude = ['password']
         read_only_fields = ('id', 'created_at', 'updated_at')
-        extra_kwargs ={
-            'password' : {'write_only': True}
-        }
+        # extra_kwargs ={
+        #     'password' : {'write_only': True}
+        # }
+    
+    def validate(self, attrs):
+        employee_instance = employees(**attrs)
+        try:
+            employee_instance.clean()
+        except ValueError as e:
+            raise serializers.ValidationError(e)
+        return attrs
+    
+    def get_id(self, obj):
+        return IDhasher.to_md5(obj.id)
+    
+    def create(self, validated_data):
+        return super().create(validated_data)
 
         # def clean_email():
 class projectcreateserializer(serializers.ModelSerializer):

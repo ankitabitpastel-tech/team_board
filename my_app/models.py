@@ -14,7 +14,7 @@ class employees(models.Model):
     address = models.TextField(null=False, blank=False) 
     profile_image_url = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=1,
         choices=[('0', 'inactive'), ('1', 'active'), ('5', 'deleted')], 
@@ -33,18 +33,19 @@ class employees(models.Model):
             status__in=['0', '1']).exclude(id= self.id).exists():
             raise ValidationError({'email':'An employee with this email already exists.'})
 
-    # def set_password(self, raw_password):
-    #     self.password = make_password(raw_password)
-    #     print(f"Password hashed: {self.password}")
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+        print(f"Password hashed: {self.password}")
     
-    # def check_password(self, raw_password):
-    #     return check_password(raw_password, self.password)
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
     
-    # def save(self, *args, **kwargs):
-    #     """Auto-hash password when saving"""
-    #     if self.password and not self.password.startswith('pbkdf2_sha256$'):
-    #         self.set_password(self.password)
-    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        if self.password and not self.password.startswith('pbkdf2_sha256$'):
+            self.set_password(self.password)
+            print(f"After hashing :{self.password}")
+        super().save(*args, **kwargs)
+        
 
 class projects(models.Model):
     id = models.AutoField(primary_key=True)
