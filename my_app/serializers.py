@@ -31,22 +31,45 @@ class employeesserializer(serializers.ModelSerializer):
 
         # def clean_email():
 class projectcreateserializer(serializers.ModelSerializer):
-    created_by = serializers.IntegerField(write_only=True)
+    id = serializers.SerializerMethodField()
+    created_by = serializers.CharField(write_only=True)
     
+    def validate(self, attrs):
+        validation_attrs = attrs.copy()
+        validation_attrs.pop('created_by', None)
+        instance = projects(**validation_attrs)
+        try: 
+            instance.clean()
+        except ValueError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return attrs
+
     class Meta:
         model = projects
         fields = '__all__'
+        
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def validate_created_by(self, value):
+        try: 
+            return int(value)
+        except ValueError:
+            pass
+        
+        if isinstance(value, str) and len(value) == 32:
+            all_employees = employees.objects.exclude(status='5')
+            for emp in all_employees:
+                if IDhasher.to_md5(emp.id) == value:
+                    return emp.id
+        raise serializers.ValidationError("Invalid employee ID or hash")
+    
+    def get_id(self, obj):
+        return IDhasher.to_md5(obj.id)
 
     def create(self, validated_data):
         created_by_id = validated_data.pop('created_by')
-        # project = projects.objects.create(**validated_data)
+        project = projects.objects.create(**validated_data)
 
-        project = projects.objects.create(
-            title=validated_data['title'],
-            description=validated_data['description'],
-            banner_image_url=validated_data.get('banner_image_url')
-        )
         project_memberships.objects.create(
             project_id=project, 
             member_id_id=created_by_id,  
@@ -58,27 +81,64 @@ class projectcreateserializer(serializers.ModelSerializer):
     
 class projectresponseserializer(serializers.ModelSerializer):
     system_creation_time = serializers.DateTimeField(source='created_at', read_only=True)
-    
+    id = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
+
     class Meta:
         model = projects
-        fields = '__all__'
+        # fields = '__all__'
+        exclude = ['members']
+
+    def get_id(self, obj):
+        return IDhasher.to_md5(obj.id)
+    
+    def get_created_by(self, obj):
+        membership = project_memberships.objects.filter(
+            project_id=obj, 
+            is_admin=True
+        ).first()
+        if membership:
+            return IDhasher.to_md5(membership.member_id.id)
+        return None
 
 
 class projectmembershipserializer(serializers.ModelSerializer):
-    # project = projectserializer(source='project_id', read_only=True)
-    # member = employeesserializer(source='employee_id', read_only=True)
+    project_id = serializers.CharField(write_only=True)
+    member_id = serializers.CharField(write_only=True)
 
-    project_id = serializers.PrimaryKeyRelatedField(
-        queryset=projects.objects.all(), 
-        write_only=True
-    )
-    member_id = serializers.PrimaryKeyRelatedField(
-        queryset=employees.objects.all(), 
-        write_only=True
-    )
+    id = serializers.SerializerMethodField(read_only = True)
+    project_id_hash= serializers.SerializerMethodField(read_only=True)
+    member_id_hash= serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = project_memberships
         fields = '__all__'
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        # fields = ['id', 'project_id', 'member_id', 'project_id_input', 'member_id_input', 'is_admin', 'created_at', 'updated_at', 'status']
 
+        read_only_fields = ['id', 'created_at', 'status']
+
+    def validate_project_id(self, value):
+        if isinstance(value, str) and len(value) == 32:
+            all_projects = projects.objects.exclude(status='5')
+            for proj in all_projects:
+                if IDhasher.to_md5(proj.id) == value:
+                    return proj.id
+        raise serializers.ValidationError("Invalid project ID or hash")
+
+    def validate_member_id(self, value):
+        if isinstance(value, str) and len(value) == 32:
+            all_employees = employees.objects.exclude(status='5')
+            for emp in all_employees:
+                if IDhasher.to_md5(emp.id) == value:
+                    return emp.id
+        
+        raise serializers.ValidationError("Invalid employee ID or hash")
+
+    def get_id(self, obj):
+        return IDhasher.to_md5(obj.id)
+    
+    def get_project_id_hash(self, obj):
+        return IDhasher.to_md5(obj.project_id.id)
+    
+    def get_member_id_hash(self, obj):
+        return IDhasher.to_md5(obj.member_id.id)

@@ -1,4 +1,7 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+import re, os
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 
@@ -8,9 +11,10 @@ class employees(models.Model):
     first_name = models.TextField(null=False, blank=False) 
     last_name = models.TextField(null=True, blank=True)
     user_name = models.TextField(null=True, blank=True)
-    email = models.CharField(max_length=255, null=False, blank=False)
+    # email = models.EmailField(validators=[clean_email],max_length=255, null=False, blank=False )
+    email = models.CharField(null=False, blank=False, max_length=255,)
     password = models.TextField(null=False, blank=False)
-    phone_number = models.TextField(null=False, blank=False)
+    phone_number = models.TextField(null=False, blank=False, max_length=20)
     address = models.TextField(null=False, blank=False) 
     profile_image_url = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
@@ -26,7 +30,15 @@ class employees(models.Model):
         db_table = 'employees'
         
     def clean(self):
-        from django.core.exceptions import ValidationError
+        # pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        # if not re.match(pattern, self.email):
+        #     raise ValidationError("Enter a valid mail address!") 
+
+        try:
+            validate_email(self.email)
+        except ValidationError:
+            raise ValidationError("Enter a valid email address!")
+
 
         if employees.objects.filter(
             email=self.email,
@@ -49,11 +61,11 @@ class employees(models.Model):
 
 class projects(models.Model):
     id = models.AutoField(primary_key=True)
-    title = models.TextField(null=False, blank=False)
+    title = models.TextField(null=False, blank=False) #unique=True
     description = models.TextField(null=True, blank=True)
     banner_image_url=models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=1,
         choices=[('0', 'inactive'), ('1', 'active'), ('5', 'deleted')], 
@@ -65,13 +77,25 @@ class projects(models.Model):
     class Meta:
         db_table = 'projects'
 
+    def clean(self):
+        if projects.objects.filter(
+            title__iexact=self.title,  
+            status__in=['0', '1']   
+        ).exclude(id=self.id).exists():
+            raise ValidationError({'title': 'A project with this title already exists.'})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        
+
 class project_memberships(models.Model):
     id = models.AutoField(primary_key=True)
     project_id = models.ForeignKey('projects', on_delete=models.CASCADE, null=False, db_column='project_id')
     member_id = models.ForeignKey('employees', on_delete=models.CASCADE, null=False, blank=False, db_column='member_id')
     is_admin = models.BooleanField(default=False, null=False, blank=False) 
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=1,
         choices=[('0', 'inactive'), ('1', 'active'), ('5', 'deleted')], 
