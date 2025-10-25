@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
@@ -89,7 +90,7 @@ def employee_list(request):
                 'status':'error',
                 'message':'limit and page must be positive integers.',
                 'data':'{}'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_400_BAD_REQUEST),
         
         else:
             try:
@@ -374,7 +375,7 @@ def project_detail(request):
     
 @api_view(['POST'])
 @require_api_key
-def project_add_meber(request):
+def project_add_member(request):
     try:
         serializer = projectmembershipserializer(data=request.data)
 
@@ -421,3 +422,147 @@ def project_add_meber(request):
             'status':'error',
             'message': f'Server error: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+@require_api_key
+def project_remove_member(request):
+    try: 
+        project_id_hash = request.data.get('project_id')
+        member_id_hash = request.data.get('member_id')
+
+        if not project_id_hash or not member_id_hash:
+            return Response({
+                'status':'error',
+                'message':'Both project_id and member_id are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(project_id_hash) != 32 or len(member_id_hash) != 32:
+            return Response({
+                'status':'error',
+                'message':'project_id and member_id must be valid.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        project = find_project_by_hash(project_id_hash)
+        if not project:
+            return Response({
+                'status':'error',
+                'message':'Project not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        member = find_employee_by_hash(member_id_hash)
+        if not member:
+            return Response({
+                'status':'error',
+                'message':'Employee not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if member.status == '5':
+            return Response({
+                'status':'error',
+                'message':'Cannot remove deleted employee'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try: 
+            membership = project_memberships.objects.get(
+                project_id=project.id,
+                member_id=member.id,
+                status='1'
+            )
+        except project_memberships.DoesNotExist:
+            return Response({
+                'status':'error',
+                'message':'This employee is not a member of this project or already removed'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        membership.status = '5'
+        membership.updated_at = timezone.now()
+        membership.save()
+
+        return Response({
+            'status':'success',
+            'message':'Member removed from the project successfully',
+            'data':{
+                'project_id': project_id_hash,
+                'member_id': member_id_hash
+            }
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'status':'error',
+            'message':str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def find_project_by_hash(hash_value):
+    all_projects = projects.objects.all()
+    for project in all_projects:
+        if IDhasher.to_md5(project.id) == hash_value:
+            return project
+    return None
+
+def find_employee_by_hash(hash_value):
+    all_employees = employees.objects.all()
+    for employee in all_employees:
+        if IDhasher.to_md5(employee.id) == hash_value:
+            return employee
+    return None
+
+@api_view(['POST'])
+@require_api_key
+def project_members(request):
+    try:
+        project_id_hash = request.data.get('project_id')
+
+        if not project_id_hash:
+            return Response({
+                'status':'error',
+                'message':'project_id is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(project_id_hash, str) or len(project_id_hash)!=32:
+            return Response({
+                'status':'error',
+                'message':'project_id must be valid '
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        project = None
+        all_projects=projects.objects.exclude(status='5')
+        for proj in all_projects:
+            if IDhasher.to_md5(proj.id) == project_id_hash:
+                project = proj
+                break
+
+        if not project:
+            return Response({
+                'status':'error',
+                'message':'project not found' 
+        }, status=status.HTTP_404_NOT_FOUND)
+
+        memberships = project_memberships.objects.filter(
+            project_id=project.id,
+            status='1'or '0'                                   
+        ).select_related('member_id')
+
+        members_data = []
+        for membership in memberships:
+            member=membership.member_id
+            members_data.append({
+                'id':IDhasher.to_md5(member.id),
+                'first_name':member.first_name,
+                'last_name':member.last_name,
+                'email':member.email,
+                'is_admin': membership.is_admin,
+                'created_at': membership.created_at
+            })
+
+        return Response({
+            'status':'success',
+            'message':'project members retrived successfully',
+            'data':members_data
+        }, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({
+            'status':'error',
+            'message':str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

@@ -123,7 +123,7 @@ class projectmembershipserializer(serializers.ModelSerializer):
             for proj in all_projects:
                 if IDhasher.to_md5(proj.id) == value:
                     return proj.id
-        raise serializers.ValidationError("Invalid project ID or hash")
+        raise serializers.ValidationError("Invalid project ID")
 
     def validate_member_id(self, value):
         if isinstance(value, str) and len(value) == 32:
@@ -132,7 +132,7 @@ class projectmembershipserializer(serializers.ModelSerializer):
                 if IDhasher.to_md5(emp.id) == value:
                     return emp.id
         
-        raise serializers.ValidationError("Invalid employee ID or hash")
+        raise serializers.ValidationError("Invalid employee ID")
 
     def get_id(self, obj):
         return IDhasher.to_md5(obj.id)
@@ -142,3 +142,8 @@ class projectmembershipserializer(serializers.ModelSerializer):
     
     def get_member_id_hash(self, obj):
         return IDhasher.to_md5(obj.member_id.id)
+    
+    def create(self, validated_data):
+        return super().create(validated_data)
+    
+    
