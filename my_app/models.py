@@ -106,3 +106,45 @@ class project_memberships(models.Model):
     class Meta:
         db_table = 'project_memberships'
         unique_together = ['project_id', 'member_id']
+
+class messages(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    project_id = models.ForeignKey(
+        'projects',
+        on_delete=models.DO_NOTHING,
+        null=False,
+        db_column='project_id'
+    )
+
+    sender_id = models.ForeignKey(
+        'employees',
+        on_delete=models.DO_NOTHING,
+        null=False,
+        db_column='sender_id'
+    )
+    text_body = models.TextField(null=True, blank=True)
+    has_media = models.BooleanField(default=False, null=False)
+    media_url = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=False)
+    updated_at = models.DateTimeField(null=True, blank=True, auto_now=True)
+
+    status = models.CharField(
+        max_length=1,
+        choices=[('0', 'inactive'), ('1', 'active'), ('5', 'deleted')], 
+        default='1', null=False,
+        blank=False
+    )
+
+    class Meta:
+        db_table = 'messages'
+
+    def save(self, *args, **kwargs):
+        if not self.text_body and not self.media_url:
+            raise ValidationError('At least one of text_body or media_url must be provided.')
+        
+        self.has_media = bool(self.media_url)
+
+        super().save(*args, **kwargs)
+
+    

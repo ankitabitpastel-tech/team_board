@@ -14,7 +14,9 @@ urlpatterns = [
     path('project/add_member', views.project_add_member, name='project_add_member'),
     path('project/remove_member', views.project_remove_member, name='project_remove_member'),
     path('project/members', views.project_members, name='project_members'),
-
+    path('project/message', views.send_message, name='send_message'),
+    path('project/messages', views.project_messages, name='project_messages'),
+    path('employee/messages', views.employee_messages, name='employee_messages'),
 
 
 

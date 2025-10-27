@@ -2,8 +2,8 @@ from django.utils import timezone
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
-from .models import employees, projects, project_memberships
-from .serializers import employeesserializer, projectcreateserializer, projectresponseserializer, projectmembershipserializer
+from .models import employees, projects, project_memberships, messages
+from .serializers import employeesserializer, projectcreateserializer, projectresponseserializer, projectmembershipserializer, messageserializer
 from rest_framework.decorators import api_view
 from .utils.id_hasher import IDhasher
 from django.core.paginator import Paginator, EmptyPage
@@ -566,3 +566,256 @@ def project_members(request):
             'message':str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+@require_api_key
+def send_message(request):
+    try: 
+        serializer = messageserializer(data=request.data)
+        if serializer.is_valid():
+            project_id = serializer.validated_data['project_id']
+            sender_id = serializer.validated_data['sender_id']
+
+            if not project_id or not sender_id:
+                return Response({
+                    'status':'error',
+                    'message':'Both project_id and sender_id are required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+            is_member = project_memberships.objects.filter(
+                project_id = project_id,
+                member_id = sender_id,
+                status='1'
+            ).exists()
+
+            if not is_member:
+                return Response({
+                    'status':'error',
+                    'message':'sender is not a member of this project'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            message = messages.objects.create(
+                project_id_id = project_id, 
+                sender_id_id = sender_id,
+                text_body = serializer.validated_data.get('text_body'),
+                media_url = serializer.validated_data.get('media_url'),
+                status='1' 
+            ) 
+            response_serializer= messageserializer(message)
+
+            return Response({
+                'status':'OK',
+                'message':'Message posted successfully',
+                'data': response_serializer.data
+            }, status=status.HTTP_201_CREATED)
+        
+        else:
+            return Response({
+                'status':'error',
+                'message': 'Invalid data!',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        return Response({
+            'status':'error',
+            'message':f'Server error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+     
+@api_view(['POST'])
+@require_api_key
+def project_messages(request): 
+    try:
+        project_id = request.data.get('project_id')
+        limit = int(request.data.get('limit', 0))
+        page = int(request.data.get('page', 1))    
+    
+        messages_set = messages.objects.exclude(status='5').select_related('sender_id', 'project_id').order_by('-created_at')
+        total_count = messages_set.count()
+
+        if not isinstance(project_id, str) or len(project_id) != 32:
+            return Response({
+                'status': 'error',
+                'message': 'project_id must be valid'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        project = None
+        all_projects = projects.objects.exclude(status='5')
+        for proj in all_projects:
+            if IDhasher.to_md5(proj.id) == project_id:
+                project = proj
+                break
+
+        if not project:
+                return Response({
+                    'status': 'error',
+                    'message': 'Project not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        messages_set = messages.objects.filter(
+            project_id=project.id,
+            status='1'
+        ).select_related('sender_id').order_by('-created_at')
+        total_count = messages_set.count()
+
+        if limit == 0:
+            serializer = messageserializer(messages_set, many=True)
+            response_data = {
+                'status': 'OK',
+                'message': 'Messages retrived successfully',
+                'count': total_count,
+                'data': serializer.data
+            }
+
+            if project_id and project:
+                response_data['project']={
+                'id': project_id,
+                'titel': project.title
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        if limit <= 0 or page <= 0:
+            return Response({
+                'status':'error',
+                'mesage':'limit and page must be positive integers'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+        offset = (page - 1) * limit
+        messages_list = messages_set[offset:offset+limit]
+        total_pages = (total_count + limit -1) // limit
+
+        serializer = messageserializer(messages_list, many=True)
+        response_data = {
+            'status': 'OK',
+            'message': f'Message page {page} retrived successfully',
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_records': limit,
+                'has_next': page < total_pages,
+                'has_previous': page > 1                
+            },
+            'data': serializer.data
+        }
+
+        if project_id and project:
+                response_data['project']={
+                'id': project_id,
+                'titel': project.title
+            }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+                
+    # except ValueError:
+    #     return Response({
+    #         'status': 'error',
+    #         'message':'Invalid pagination parameters. limit and page must be integers'
+    #     }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message':f'server error:{str(e)}'
+        }, status = status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    
+     
+@api_view(['POST'])
+@require_api_key
+def employee_messages(request): 
+    try:
+        sender_id = request.data.get('sender_id')
+        limit = int(request.data.get('limit', 0))
+        page = int(request.data.get('page', 1))    
+    
+        messages_set = messages.objects.exclude(status='5').select_related('sender_id', 'project_id').order_by('-created_at')
+        total_count = messages_set.count()
+
+        if not isinstance(sender_id, str) or len(sender_id) != 32:
+            return Response({
+                'status': 'error',
+                'message': 'sender_id must be valid'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        employee = None
+        all_employees = employees.objects.exclude(status='5')
+        for emp in all_employees:
+            if IDhasher.to_md5(emp.id) == sender_id:
+                sender = emp
+                break
+
+        if not sender:
+                return Response({
+                    'status': 'error',
+                    'message': 'Sender not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        messages_set = messages.objects.filter(
+            sender_id_id=sender.id, 
+            status='1'
+        ).select_related('sender_id').order_by('-created_at')
+        total_count = messages_set.count()
+
+        if limit == 0:
+            serializer = messageserializer(messages_set, many=True)
+            response_data = {
+                'status': 'OK',
+                'message': 'Messages retrived successfully',
+                'count': total_count,
+                'data': serializer.data
+            }
+
+            if sender_id and sender:
+                response_data['sender']={
+                'id': sender_id,
+                'first_name':sender.first_name
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        if limit <= 0 or page <= 0:
+            return Response({
+                'status':'error',
+                'mesage':'limit and page must be positive integers'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+        offset = (page - 1) * limit
+        messages_list = messages_set[offset:offset+limit]
+        total_pages = (total_count + limit -1) // limit
+
+        serializer = messageserializer(messages_list, many=True)
+        response_data = {
+            'status': 'OK',
+            'message': f'Message page {page} retrived successfully',
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_records': limit,
+                'has_next': page < total_pages,
+                'has_previous': page > 1                
+            },
+            'data': serializer.data
+        }
+
+        if sender_id and sender:
+                response_data['sender']={
+                'id': sender_id,
+                'first_name':sender.first_name
+            }
+            
+
+        return Response(response_data, status=status.HTTP_200_OK)
+                
+    # except ValueError:
+    #     return Response({
+    #         'status': 'error',
+    #         'message':'Invalid pagination parameters. limit and page must be integers'
+    #     }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message':f'server error:{str(e)}'
+        }, status = status.HTTP_500_INTERNAL_SERVER_ERROR)
