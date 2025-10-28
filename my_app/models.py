@@ -39,6 +39,10 @@ class employees(models.Model):
         except ValidationError:
             raise ValidationError("Enter a valid email address!")
 
+        if len(self.password) < 6:
+            raise ValidationError({
+                'password': 'Password must be at least 6 characters long.'
+            })
 
         if employees.objects.filter(
             email=self.email,
