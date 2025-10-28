@@ -198,68 +198,68 @@ def employee_detail(request):
             "data": {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-@api_view(['POST'])
-@require_api_key
-def employee_remove(request):
-    try: 
-        employee_id = request.data.get('employee_id')
+# @api_view(['POST'])
+# @require_api_key
+# def employee_remove(request):
+#     try: 
+#         employee_id = request.data.get('employee_id')
         
-        if not employee_id:
-            return Response({
-                'status':'error',
-                'message':'employee_id is required',
-                "data": {}
-            }, status=status.HTTP_400_BAD_REQUEST)
+#         if not employee_id:
+#             return Response({
+#                 'status':'error',
+#                 'message':'employee_id is required',
+#                 "data": {}
+#             }, status=status.HTTP_400_BAD_REQUEST)
         
-        employee = None
-        all_employees = employees.objects.exclude(status='5')
+#         employee = None
+#         all_employees = employees.objects.exclude(status='5')
 
-        if isinstance(employee_id, str) and len(employee_id) == 32:
-            for emp in all_employees:
-                if IDhasher.to_md5(emp.id) == employee_id:
-                    employee = emp
-                    break
+#         if isinstance(employee_id, str) and len(employee_id) == 32:
+#             for emp in all_employees:
+#                 if IDhasher.to_md5(emp.id) == employee_id:
+#                     employee = emp
+#                     break
         
-        else:
-                return Response({
-                'status': 'error',
-                'message': 'Invalid employee_id',
-                "data": {}
-                }, status= status.HTTP_404_NOT_FOUND)
+#         else:
+#                 return Response({
+#                 'status': 'error',
+#                 'message': 'Invalid employee_id',
+#                 "data": {}
+#                 }, status= status.HTTP_404_NOT_FOUND)
         
-        if not employee:
-            return Response({
-                'status': 'error',
-                'message': 'Employee not found',
-                "data": {}
-            }, status=status.HTTP_404_NOT_FOUND)
+#         if not employee:
+#             return Response({
+#                 'status': 'error',
+#                 'message': 'Employee not found',
+#                 "data": {}
+#             }, status=status.HTTP_404_NOT_FOUND)
 
-        if employee.status == '5':
-            return Response({
-                'status': 'error',
-                'message': 'Employee is already deleted',
-                "data": {}
-            }, status=status.HTTP_400_BAD_REQUEST)
+#         if employee.status == '5':
+#             return Response({
+#                 'status': 'error',
+#                 'message': 'Employee is already deleted',
+#                 "data": {}
+#             }, status=status.HTTP_400_BAD_REQUEST)
 
 
-        employee.status='5'
-        employee.save()
+#         employee.status='5'
+#         employee.save()
 
-        serializer = employeesserializer(employee)
+#         serializer = employeesserializer(employee)
 
-        return Response({
-            'status':'success',
-            'message': 'Employee removed successfully',
-            "data": {}
+#         return Response({
+#             'status':'success',
+#             'message': 'Employee removed successfully',
+#             "data": {}
 
-            # 'data':serializer.data
-        })
-    except Exception as e:
-        return Response({
-            'status':'error',
-            'message': str(e),
-            "data": {}
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#             # 'data':serializer.data
+#         })
+#     except Exception as e:
+#         return Response({
+#             'status':'error',
+#             'message': str(e),
+#             "data": {}
+#         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
 @require_api_key
