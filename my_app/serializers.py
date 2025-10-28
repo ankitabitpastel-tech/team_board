@@ -153,12 +153,16 @@ class messageserializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField(read_only=True)
     project_id_ = serializers.SerializerMethodField(read_only=True)
     sender_id_ = serializers.SerializerMethodField(read_only=True)
+    project_title = serializers.SerializerMethodField(read_only=True)
+    sender_name = serializers.SerializerMethodField(read_only=True)
+
+
 
     class Meta: 
         model = messages
         # fields = ['project_id', 'sender_id', 'text_body', 'media_url']
         fields = '__all__'
-        read_only_fields = ('id', 'project_id_', 'sender_id_', 'has_media', 'created_at', 'updated_at', 'status')
+        read_only_fields = ('id', 'project_id_', 'sender_id_', 'project_title', 'sender_name', 'has_media', 'created_at', 'updated_at', 'status')
 
     def validate_project_id(self, value):
 
@@ -188,17 +192,9 @@ class messageserializer(serializers.ModelSerializer):
     def get_sender_id_(self, obj):
         return IDhasher.to_md5(obj.sender_id.id)
     
-    # def get_sender(self, obj):
-    #     return{
-    #         'id': IDhasher.to_md5(obj.sender_id.id),
-    #         'first_name': obj.sender_id.first_name,
-    #         'last_name':obj.sender_id.last_name
-    #     }
-
-    # def get_project(self, obj):
-    #     return{
-    #         'id': IDhasher.to_md5(obj.project_id.id),
-    #         'titel': obj.project_id.tite'
-    #         'first_name': obj.sender_id.first_name,
-    #         'last_name':obj.sender_id.last_name
-    #     }
+    def get_project_title(self, obj):
+        return obj.project_id.title if obj.project_id else None    
+ 
+    def get_sender_name(self, obj):
+        return obj.sender_id.first_name if obj.sender_id else None    
+ 
