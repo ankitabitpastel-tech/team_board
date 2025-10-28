@@ -61,7 +61,7 @@ class projectcreateserializer(serializers.ModelSerializer):
             for emp in all_employees:
                 if IDhasher.to_md5(emp.id) == value:
                     return emp.id
-        raise serializers.ValidationError("Invalid employee ID or hash")
+        raise serializers.ValidationError("Invalid employee ID")
     
     def get_id(self, obj):
         return IDhasher.to_md5(obj.id)

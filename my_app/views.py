@@ -23,7 +23,9 @@ def require_api_key(view_func):
         if not api_key:
             return Response({
                 'status':'error',
-                'message': 'API key required'
+                'message': 'API key required',
+                "data": {}
+
             }, status=status.HTTP_401_UNAUTHORIZED)
         # if api_key.startswith('Bearer'):
         #     api_key = api_key[7:]
@@ -31,7 +33,8 @@ def require_api_key(view_func):
         if api_key not in VALID_API_KEYS:
             return Response({
                 'status':'error',
-                'message': 'Invalid API Key'
+                'message': 'Invalid API Key',
+                "data": {}
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         return view_func(request, *args, **kwargs)
@@ -58,12 +61,14 @@ def employee_create(request):
             return Response({
                 'status': 'error',
                 'message':'Invalid data',
-                'errors':serializer.errors
+                'errors':serializer.errors,
+                "data": {}
             }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({
             'status':'error',
-            'message':str(e)
+            'message':str(e),
+            "data": {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -89,7 +94,7 @@ def employee_list(request):
             return Response({
                 'status':'error',
                 'message':'limit and page must be positive integers.',
-                'data':'{}'
+                "data": {}
             }, status=status.HTTP_400_BAD_REQUEST),
         
         else:
@@ -118,13 +123,15 @@ def employee_list(request):
             except ValueError:
                 return Response({
                 'status' : 'error',
-                'message': 'Invalid pagination parameters. limit and page must be int'
+                'message': 'Invalid pagination parameters. limit and page must be int',
+                "data": {}
             })
 
     except Exception as e:
                 return Response({
                 'status' : 'error',
-                'message': str(e)
+                'message': str(e),
+                "data": {}
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -136,7 +143,8 @@ def employee_detail(request):
         if not employee_id_val:
             return Response({
                 'status':'error',
-                'message': 'employee_id is required!'
+                'message': 'employee_id is required!',
+                "data": {}
             }, status= status.HTTP_400_BAD_REQUEST)
         
         # try:
@@ -165,12 +173,14 @@ def employee_detail(request):
                 return Response({
                 'status': 'error',
                 'message': 'Invalid employee_id format',
+                "data": {}
                 }, status= status.HTTP_404_NOT_FOUND)
         
         if not employee:
             return Response({
                 'status': 'error',
-                'message': 'Employee not found'
+                'message': 'Employee not found',
+                "data": {}
                 }, status= status.HTTP_404_NOT_FOUND)
         
         serializer = employeesserializer(employee)
@@ -184,7 +194,8 @@ def employee_detail(request):
     except Exception as e:
         return Response({
             'status': 'error',
-            'message':str(e)
+            'message':str(e),
+            "data": {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
@@ -196,7 +207,8 @@ def employee_remove(request):
         if not employee_id:
             return Response({
                 'status':'error',
-                'message':'employee_id is required'
+                'message':'employee_id is required',
+                "data": {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         employee = None
@@ -211,19 +223,22 @@ def employee_remove(request):
         else:
                 return Response({
                 'status': 'error',
-                'message': 'Invalid employee_id format',
+                'message': 'Invalid employee_id',
+                "data": {}
                 }, status= status.HTTP_404_NOT_FOUND)
         
         if not employee:
             return Response({
                 'status': 'error',
-                'message': 'Employee not found'
+                'message': 'Employee not found',
+                "data": {}
             }, status=status.HTTP_404_NOT_FOUND)
 
         if employee.status == '5':
             return Response({
                 'status': 'error',
-                'message': 'Employee is already deleted'
+                'message': 'Employee is already deleted',
+                "data": {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -235,12 +250,15 @@ def employee_remove(request):
         return Response({
             'status':'success',
             'message': 'Employee removed successfully',
-            'data':serializer.data
+            "data": {}
+
+            # 'data':serializer.data
         })
     except Exception as e:
         return Response({
             'status':'error',
-            'message': str(e)
+            'message': str(e),
+            "data": {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
@@ -262,13 +280,16 @@ def create_project(request):
                 return Response({
                     'status': 'error',
                     'message':'Invalid data!',
-                    'errors': serializer.errors
+                    'errors': serializer.errors,
+                    "data": {}
+
                 }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print("Exception:", str(e))
             return Response({
                 'status':'error',
-                'message': f'server error: {str(e)}'
+                'message': f'server error: {str(e)}',
+                 "data": {}
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -319,13 +340,15 @@ def project_list(request):
     except ValueError:
         return Response({
             'status' : 'error',
-            'message': 'Invalid pagination parameters. limit and bouth must be integers'
+            'message': 'Invalid pagination parameters. limit and bouth must be integers',
+            'data': {}
         }, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
         return Response({
             'status':'error',
-            'message':f"Server error:{str(e)}"
+            'message':f"Server error:{str(e)}",
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
@@ -337,7 +360,8 @@ def project_detail(request):
         if not project_id:
             return Response({
                 'status': 'error',
-                'message': 'project_id is required!'
+                'message': 'project_id is required!',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         project = None
@@ -352,13 +376,15 @@ def project_detail(request):
         else:
             return Response({
                 'status': 'error',
-                'message':'Invalid project_id format. Must be MD5 hash', 
+                'message':'Invalid project_id format. Must be MD5 hash',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if not project:
             return Response({
                 'status':'error',
-                'message':'No project found'
+                'message':'No project found',
+                'data': {}
             }, status=status.HTTP_404_NOT_FOUND)
         serializer = projectresponseserializer(project)
 
@@ -370,7 +396,8 @@ def project_detail(request):
     except Exception as e:
         return Response({
             'status':'error',
-            'message':str(e)
+            'message':str(e),
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
@@ -393,7 +420,8 @@ def project_add_member(request):
             if existing_memberships:
                 return Response({
                     'status':'error',
-                    'message':"Member is already part of this group"
+                    'message':"Member is already part of this group",
+                    'data': {}
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             membership = project_memberships.objects.create(
@@ -414,13 +442,15 @@ def project_add_member(request):
             return Response({
                 'status': 'error',
                 'message': 'Invalid data!',
-                'errors': serializer.errors
+                'errors': serializer.errors,
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
         return Response({
             'status':'error',
-            'message': f'Server error: {str(e)}'
+            'message': f'Server error: {str(e)}',
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
@@ -433,33 +463,38 @@ def project_remove_member(request):
         if not project_id_hash or not member_id_hash:
             return Response({
                 'status':'error',
-                'message':'Both project_id and member_id are required'
+                'message':'Both project_id and member_id are required',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if len(project_id_hash) != 32 or len(member_id_hash) != 32:
             return Response({
                 'status':'error',
-                'message':'project_id and member_id must be valid.'
+                'message':'project_id and member_id must be valid.',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
         project = find_project_by_hash(project_id_hash)
         if not project:
             return Response({
                 'status':'error',
-                'message':'Project not found'
+                'message':'Project not found',
+                'data': {}
             }, status=status.HTTP_404_NOT_FOUND)
 
         member = find_employee_by_hash(member_id_hash)
         if not member:
             return Response({
                 'status':'error',
-                'message':'Employee not found'
+                'message':'Employee not found',
+                'data': {}
             }, status=status.HTTP_404_NOT_FOUND)
 
         if member.status == '5':
             return Response({
                 'status':'error',
-                'message':'Cannot remove deleted employee'
+                'message':'Cannot remove deleted employee',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try: 
@@ -471,8 +506,18 @@ def project_remove_member(request):
         except project_memberships.DoesNotExist:
             return Response({
                 'status':'error',
-                'message':'This employee is not a member of this project or already removed'
+                'message':'This employee is not a member of this project or already removed',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if membership.is_admin:
+            return Response({
+                'status':'ERROR',
+                'message':'Cannot remove project creator.',
+                'data': {}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+
         
         membership.status = '5'
         membership.updated_at = timezone.now()
@@ -489,7 +534,8 @@ def project_remove_member(request):
     except Exception as e:
         return Response({
             'status':'error',
-            'message':str(e)
+            'message':str(e),
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def find_project_by_hash(hash_value):
@@ -515,13 +561,15 @@ def project_members(request):
         if not project_id_hash:
             return Response({
                 'status':'error',
-                'message':'project_id is required'
+                'message':'project_id is required',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if not isinstance(project_id_hash, str) or len(project_id_hash)!=32:
             return Response({
                 'status':'error',
-                'message':'project_id must be valid '
+                'message':'project_id must be valid ',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         project = None
@@ -534,7 +582,8 @@ def project_members(request):
         if not project:
             return Response({
                 'status':'error',
-                'message':'project not found' 
+                'message':'project not found' ,
+                'data': {}
         }, status=status.HTTP_404_NOT_FOUND)
 
         memberships = project_memberships.objects.filter(
@@ -563,7 +612,8 @@ def project_members(request):
     except Exception as e:
         return Response({
             'status':'error',
-            'message':str(e)
+            'message':str(e),
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -578,7 +628,8 @@ def send_message(request):
             if not project_id or not sender_id:
                 return Response({
                     'status':'error',
-                    'message':'Both project_id and sender_id are required'
+                    'message':'Both project_id and sender_id are required',
+                    'data': {}
                 }, status=status.HTTP_400_BAD_REQUEST)
         
             is_member = project_memberships.objects.filter(
@@ -590,7 +641,8 @@ def send_message(request):
             if not is_member:
                 return Response({
                     'status':'error',
-                    'message':'sender is not a member of this project'
+                    'message':'sender is not a member of this project',
+                    'data': {}
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             message = messages.objects.create(
@@ -612,13 +664,15 @@ def send_message(request):
             return Response({
                 'status':'error',
                 'message': 'Invalid data!',
-                'errors': serializer.errors
+                'errors': serializer.errors,
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
         return Response({
             'status':'error',
-            'message':f'Server error: {str(e)}'
+            'message':f'Server error: {str(e)}',
+            'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
      
@@ -636,7 +690,8 @@ def project_messages(request):
         if not isinstance(project_id, str) or len(project_id) != 32:
             return Response({
                 'status': 'error',
-                'message': 'project_id must be valid'
+                'message': 'project_id must be valid',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
         project = None
@@ -649,7 +704,8 @@ def project_messages(request):
         if not project:
                 return Response({
                     'status': 'error',
-                    'message': 'Project not found'
+                    'message': 'Project not found',
+                    'data': {}
                 }, status=status.HTTP_404_NOT_FOUND)
         
         messages_set = messages.objects.filter(
@@ -678,7 +734,8 @@ def project_messages(request):
         if limit <= 0 or page <= 0:
             return Response({
                 'status':'error',
-                'mesage':'limit and page must be positive integers'
+                'mesage':'limit and page must be positive integers',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -716,7 +773,8 @@ def project_messages(request):
     except Exception as e:
         return Response({
             'status': 'error',
-            'message':f'server error:{str(e)}'
+            'message':f'server error:{str(e)}',
+            'data': {}
         }, status = status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -736,7 +794,8 @@ def employee_messages(request):
         if not isinstance(sender_id, str) or len(sender_id) != 32:
             return Response({
                 'status': 'error',
-                'message': 'sender_id must be valid'
+                'message': 'sender_id must be valid',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
         employee = None
@@ -749,7 +808,8 @@ def employee_messages(request):
         if not sender:
                 return Response({
                     'status': 'error',
-                    'message': 'Sender not found'
+                    'message': 'Sender not found',
+                    'data': {}
                 }, status=status.HTTP_404_NOT_FOUND)
         
         messages_set = messages.objects.filter(
@@ -778,7 +838,8 @@ def employee_messages(request):
         if limit <= 0 or page <= 0:
             return Response({
                 'status':'error',
-                'mesage':'limit and page must be positive integers'
+                'mesage':'limit and page must be positive integers',
+                'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -817,5 +878,6 @@ def employee_messages(request):
     except Exception as e:
         return Response({
             'status': 'error',
-            'message':f'server error:{str(e)}'
+            'message':f'server error:{str(e)}',
+            'data': {}
         }, status = status.HTTP_500_INTERNAL_SERVER_ERROR)
