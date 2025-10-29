@@ -84,7 +84,7 @@ class projectresponseserializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     created_by = serializers.SerializerMethodField()
     members = serializers.SerializerMethodField()
-
+    member_count = serializers.SerializerMethodField()
     class Meta:
         model = projects
         # fields = '__all__'
@@ -97,6 +97,7 @@ class projectresponseserializer(serializers.ModelSerializer):
             'system_creation_time',
             'updated_at', 
             'members',
+            'member_count',
             'status'
         ]
 
@@ -131,6 +132,13 @@ class projectresponseserializer(serializers.ModelSerializer):
             })
 
         return members_list
+    
+    def get_member_count(self, obj):
+        return project_memberships.objects.filter(
+            project_id=obj,
+            status='1'
+        ).count()
+
 
 class projectmembershipserializer(serializers.ModelSerializer):
     project_id = serializers.CharField(write_only=True)

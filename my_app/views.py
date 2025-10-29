@@ -319,10 +319,21 @@ def project_list(request):
 
         if limit == 0:
             serializer = projectresponseserializer(all_projects, many=True)
+            
+            response_data = []
+            for project_data in serializer.data:
+                project_data_without_members = project_data.copy()
+
+                member_count = len(project_data.get('members', []))
+                project_data_without_members['member_count'] = member_count
+
+                project_data_without_members.pop('members', None)
+                response_data.append(project_data_without_members)
+
             return Response({
                 'status': "success",
                 'message': 'projects retrived successfully',
-                'data': serializer.data
+                'data': response_data
             }, status=status.HTTP_200_OK)
 
         if limit <= 0 or page < 1:
@@ -336,6 +347,17 @@ def project_list(request):
         project_list = all_projects[offset:offset + limit]
         serializer = projectresponseserializer(project_list, many=True)
         total_pages = (total_count + limit - 1) // limit
+
+        response_data = []
+        for project_data in serializer.data:
+            project_data_without_members = project_data.copy()
+
+            member_count = len(project_data.get('members', []))
+            project_data_without_members['member_count'] = member_count
+                
+            project_data_without_members.pop('members', None)
+            response_data.append(project_data_without_members)
+
         
         return Response({
             'status': 'success',
@@ -348,7 +370,7 @@ def project_list(request):
                 'has_next': page < total_pages,
                 'has_previous': page > 1
             },
-            'data': serializer.data 
+            'data': response_data
         }, status=status.HTTP_200_OK)
     
     except ValueError:
@@ -413,7 +435,76 @@ def project_detail(request):
             'message':str(e),
             'data': {}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
+@api_view(['POST'])
+@require_api_key
+def project_members_list(request):
+    try:
+        project_id = request.data.get('project_id')
+
+        if not project_id:
+            return Response({
+                'status': 'error',
+                'message': 'project_id is required!',
+                'data': {}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        project = None
+        all_projects = projects.objects.exclude(status='5')
+
+        if isinstance(project_id, str) and len(project_id) == 32:
+            for proj in all_projects:
+                if IDhasher.to_md5(proj.id) == project_id:
+                    project = proj
+                    break
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'Invalid project_id format. Must be MD5 hash',
+                'data': {}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not project:
+            return Response({
+                'status': 'error',
+                'message': 'Project not found',
+                'data': {}
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        memberships = project_memberships.objects.filter(
+            project_id=project,
+            status='1'  ,
+            ).select_related('member_id')
+
+        members_data = []
+        for membership in memberships:
+            member = membership.member_id
+            members_data.append({
+                'id': IDhasher.to_md5(member.id),
+                'first_name': member.first_name,
+                'last_name': member.last_name or '',
+                'email': member.email,
+                'phone_number': member.phone_number,
+                'profile_image_url': member.profile_image_url or '',
+                'is_admin': membership.is_admin,
+                'joined_at': membership.created_at
+            })
+
+        return Response({
+            'status': 'OK',
+            'message': 'Project members retrieved successfully',
+            'data': members_data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'Server error: {str(e)}',
+            'data': {}
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 @api_view(['POST'])
 @require_api_key
 def project_add_member(request):
