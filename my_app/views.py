@@ -293,8 +293,8 @@ def create_project(request):
             else :
                 return Response({
                     'status': 'error',
-                    'message':'Invalid data!',
-                    'errors': serializer.errors,
+                    'message':f'Invalid data! {serializer.errors,}',
+                    # 'errors': serializer.errors,
                     "data": {}
 
                 }, status=status.HTTP_400_BAD_REQUEST)
@@ -617,7 +617,7 @@ def project_remove_member(request):
         
         if membership.is_admin:
             return Response({
-                'status':'ERROR',
+                'status':'error',
                 'message':'Cannot remove project creator.',
                 'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
