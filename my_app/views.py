@@ -522,8 +522,8 @@ def project_add_member(request):
                 status='1'
             ).first()
 
-            if existing_memberships.status=='1' or existing_memberships.status=='0' :
-                    return Response({
+            if existing_memberships and existing_memberships.status in ['1', '0']:
+                return Response({
                         'status':'error',
                         'message':"Member is already part of this group",
                         'data': {}

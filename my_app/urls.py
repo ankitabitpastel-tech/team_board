@@ -19,6 +19,4 @@ urlpatterns = [
     path('project/messages', views.project_messages, name='project_messages'),
     path('employee/messages', views.employee_messages, name='employee_messages'),
 
-
-
     ]
