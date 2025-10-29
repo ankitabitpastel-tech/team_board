@@ -58,10 +58,24 @@ def employee_create(request):
                 'data': serializer.data
             }, status=status.HTTP_201_CREATED)
         else:
+            error = serializer.errors
+
+            if error:
+                first_field = list(error.keys())[0]
+                first_error = error[first_field]
+                if isinstance(first_error, list):
+                    error_message = first_error[0]
+                else:
+                    error_message = str(first_error)
+
+
             return Response({
+                # 'status': 'error',
+                # 'message':'Invalid data', 
+                # 'errors':serializer.errors,
+                # "data": {}
                 'status': 'error',
-                'message':'Invalid data',
-                'errors':serializer.errors,
+                'message': f'{serializer.errors}',
                 "data": {}
             }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -417,12 +431,12 @@ def project_add_member(request):
                 status='1'
             ).first()
 
-            if existing_memberships:
-                return Response({
-                    'status':'error',
-                    'message':"Member is already part of this group",
-                    'data': {}
-                }, status=status.HTTP_400_BAD_REQUEST)
+            if existing_memberships.status=='1' or existing_memberships.status=='0' :
+                    return Response({
+                        'status':'error',
+                        'message':"Member is already part of this group",
+                        'data': {}
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
             membership = project_memberships.objects.create(
                 project_id_id=project_id,
@@ -441,8 +455,8 @@ def project_add_member(request):
         else:
             return Response({
                 'status': 'error',
-                'message': 'Invalid data!',
-                'errors': serializer.errors,
+                'message':f'Invalid data!{serializer.errors}',
+                # 'errors': serializer.errors,
                 'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -663,8 +677,8 @@ def send_message(request):
         else:
             return Response({
                 'status':'error',
-                'message': 'Invalid data!',
-                'errors': serializer.errors,
+                'message': f'Invalid data! {serializer.errors}',
+                # 'errors': serializer.errors,
                 'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
     

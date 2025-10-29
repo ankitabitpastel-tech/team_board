@@ -83,11 +83,24 @@ class projectresponseserializer(serializers.ModelSerializer):
     system_creation_time = serializers.DateTimeField(source='created_at', read_only=True)
     id = serializers.SerializerMethodField()
     created_by = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
 
     class Meta:
         model = projects
         # fields = '__all__'
-        exclude = ['members']
+        fields = [
+            'id',
+            'title',
+            'description',
+            'banner_image_url',
+            'created_by',
+            'system_creation_time',
+            'updated_at', 
+            'members',
+            'status'
+        ]
+
+        exclude = []
 
     def get_id(self, obj):
         return IDhasher.to_md5(obj.id)
@@ -101,6 +114,23 @@ class projectresponseserializer(serializers.ModelSerializer):
             return IDhasher.to_md5(membership.member_id.id)
         return None
 
+    def get_members(self, obj):
+        membership = project_memberships.objects.filter(
+            project_id = obj,
+            status = '1'
+        ).select_related('member_id')
+
+        members_list = []
+        for membership in membership:
+            member = membership.member_id
+            members_list.append({
+                'id': IDhasher.to_md5(member.id),
+                'first_name': member.first_name,
+                'is_admin': membership.is_admin,
+                'joined_at': membership.created_at
+            })
+
+        return members_list
 
 class projectmembershipserializer(serializers.ModelSerializer):
     project_id = serializers.CharField(write_only=True)

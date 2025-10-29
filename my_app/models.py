@@ -131,7 +131,7 @@ class messages(models.Model):
     has_media = models.BooleanField(default=False, null=False)
     media_url = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=False)
-    updated_at = models.DateTimeField(null=True, blank=True, auto_now=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(
         max_length=1,
